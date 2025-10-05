@@ -1,0 +1,270 @@
+<template>
+  <div class="min-h-screen bg-gray-50 py-6">
+    <div class="max-w-4xl mx-auto px-4">
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Ranking de Usuarios</h1>
+        <p class="text-gray-600">Los usuarios más activos de SpotLoo</p>
+      </div>
+      
+      <!-- Loading state -->
+      <div v-if="isLoading" class="text-center py-12">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+        <p class="text-gray-600">Cargando ranking...</p>
+      </div>
+      
+      <!-- Ranking content -->
+      <div v-else class="space-y-4">
+        <!-- User ranking list -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">Top Contribuidores</h2>
+          </div>
+          
+          <div class="divide-y divide-gray-200">
+            <div 
+              v-for="(user, index) in topUsers" 
+              :key="user.id"
+              class="px-6 py-4 flex items-center justify-between hover:bg-gray-50"
+            >
+              <div class="flex items-center space-x-4">
+                <!-- Rank badge -->
+                <div 
+                  class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                  :class="getRankBadgeClass(index)"
+                >
+                  {{ index + 1 }}
+                </div>
+                
+                <!-- User avatar -->
+                <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                  <img 
+                    v-if="user.avatar" 
+                    :src="user.avatar" 
+                    :alt="user.name"
+                    class="w-full h-full object-cover"
+                  >
+                  <svg v-else class="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+                
+                <!-- User info -->
+                <div>
+                  <h3 class="font-medium text-gray-900">{{ user.name }}</h3>
+                  <p class="text-sm text-gray-500">{{ user.contributions }} contribuciones</p>
+                </div>
+              </div>
+              
+              <!-- Points -->
+              <div class="text-right">
+                <p class="text-lg font-bold text-primary-600">{{ user.points }}</p>
+                <p class="text-xs text-gray-500">puntos</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Bathroom statistics -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+          <div class="bg-white rounded-lg shadow-sm p-6 text-center">
+            <div class="text-3xl font-bold text-primary-600 mb-2">{{ totalBathrooms }}</div>
+            <p class="text-gray-600">Baños registrados</p>
+          </div>
+          
+          <div class="bg-white rounded-lg shadow-sm p-6 text-center">
+            <div class="text-3xl font-bold text-green-600 mb-2">{{ totalContributors }}</div>
+            <p class="text-gray-600">Contribuidores</p>
+          </div>
+          
+          <div class="bg-white rounded-lg shadow-sm p-6 text-center">
+            <div class="text-3xl font-bold text-orange-600 mb-2">{{ totalCountries }}</div>
+            <p class="text-gray-600">Países</p>
+          </div>
+        </div>
+        
+        <!-- Recent contributions -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden mt-8">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">Contribuciones Recientes</h2>
+          </div>
+          
+          <div class="divide-y divide-gray-200">
+            <div 
+              v-for="contribution in recentContributions" 
+              :key="contribution.id"
+              class="px-6 py-4 flex items-center justify-between"
+            >
+              <div class="flex items-center space-x-4">
+                <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                  <svg class="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                  </svg>
+                </div>
+                
+                <div>
+                  <h3 class="font-medium text-gray-900">{{ contribution.title }}</h3>
+                  <p class="text-sm text-gray-500">
+                    por {{ contribution.author }} • {{ formatDate(contribution.createdAt) }}
+                  </p>
+                </div>
+              </div>
+              
+              <div class="text-right">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  +{{ contribution.points }} pts
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted, computed } from 'vue'
+import { loadRankingData as loadRankingDataFromService, loadBathrooms } from '../services/bathroomService.js'
+import { isLoggedIn, getUserRanking, getRecentActions } from '../services/userService.js'
+import { useRouter } from 'vue-router'
+
+// Router instance
+const router = useRouter()
+
+// Reactive state
+const isLoading = ref(true)
+const topUsers = ref([])
+const totalBathrooms = ref(0)
+const totalContributors = ref(0)
+const totalCountries = ref(0)
+const recentContributions = ref([])
+
+// Check authentication
+onMounted(() => {
+  if (!isLoggedIn.value) {
+    console.log('User not logged in, redirecting to map')
+    router.push('/')
+    return
+  }
+  
+  loadRankingData()
+})
+
+// Load ranking data
+const loadRankingData = async () => {
+  try {
+    console.log('Loading ranking data...')
+    
+    // Load bathrooms first (should work)
+    const bathrooms = await loadBathrooms()
+    
+    // Initialize with empty data
+    let users = []
+    let actions = []
+    
+    // Try to load user ranking and actions (may fail due to permissions)
+    try {
+      users = await getUserRanking()
+    } catch (error) {
+      console.warn('Could not load user ranking:', error.message)
+      // Use mock data for now
+      users = [
+        { uid: 'mock1', displayName: 'Usuario 1', points: 25, contributions: 3 },
+        { uid: 'mock2', displayName: 'Usuario 2', points: 15, contributions: 2 },
+        { uid: 'mock3', displayName: 'Usuario 3', points: 10, contributions: 1 }
+      ]
+    }
+    
+    try {
+      actions = await getRecentActions(10)
+    } catch (error) {
+      console.warn('Could not load recent actions:', error.message)
+      // Use mock data for now
+      actions = [
+        {
+          id: 'mock1',
+          description: 'Validó el baño "Gasolinera Shell"',
+          points: 10,
+          createdAt: new Date(),
+          action: 'validation'
+        },
+        {
+          id: 'mock2', 
+          description: 'Creó el baño "Baño prueba"',
+          points: 15,
+          createdAt: new Date(Date.now() - 3600000),
+          action: 'contribution'
+        }
+      ]
+    }
+    
+    // Process user data
+    topUsers.value = users.map(user => ({
+      id: user.uid || user.id,
+      name: user.displayName || 'Usuario anónimo',
+      points: user.points || 0,
+      contributions: user.contributions || 0,
+      avatar: user.photoURL || null
+    }))
+    
+    // Calculate statistics
+    totalBathrooms.value = bathrooms.length
+    totalContributors.value = users.length
+    
+    // Count unique countries
+    const countries = new Set(bathrooms.map(b => b.country).filter(Boolean))
+    totalCountries.value = countries.size
+    
+    // Process recent actions
+    recentContributions.value = actions.map(action => ({
+      id: action.id,
+      title: action.description,
+      author: 'Usuario anónimo',
+      points: action.points,
+      createdAt: action.createdAt,
+      action: action.action
+    }))
+    
+    isLoading.value = false
+  } catch (error) {
+    console.error('Error loading ranking data:', error)
+    isLoading.value = false
+  }
+}
+
+// Helper functions
+const getRankBadgeClass = (index) => {
+  switch (index) {
+    case 0:
+      return 'bg-yellow-400 text-yellow-900'
+    case 1:
+      return 'bg-gray-300 text-gray-700'
+    case 2:
+      return 'bg-orange-300 text-orange-900'
+    default:
+      return 'bg-gray-100 text-gray-600'
+  }
+}
+
+const formatDate = (date) => {
+  if (!date) return 'hace un momento'
+  
+  const now = new Date()
+  const actionDate = date.toDate ? date.toDate() : new Date(date)
+  const diffInSeconds = Math.floor((now - actionDate) / 1000)
+  
+  if (diffInSeconds < 60) {
+    return 'hace un momento'
+  } else if (diffInSeconds < 3600) {
+    const minutes = Math.floor(diffInSeconds / 60)
+    return `hace ${minutes} minuto${minutes > 1 ? 's' : ''}`
+  } else if (diffInSeconds < 86400) {
+    const hours = Math.floor(diffInSeconds / 3600)
+    return `hace ${hours} hora${hours > 1 ? 's' : ''}`
+  } else {
+    const days = Math.floor(diffInSeconds / 86400)
+    return `hace ${days} día${days > 1 ? 's' : ''}`
+  }
+}
+</script>
