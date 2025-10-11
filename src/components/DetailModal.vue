@@ -237,6 +237,9 @@ import { ref, watch } from 'vue'
 import { getBathroomDetails, rateBathroom as rateBathroomService, checkUserRating, validateBathroom, hasUserValidated } from '../services/bathroomService.js'
 import { addDocument, getDocument } from '../services/firebase.js'
 import { currentUser } from '../services/userService.js'
+import { useModal } from '../composables/useModal.js'
+
+const { openAuthModal } = useModal()
 
 // Props
 const props = defineProps({
@@ -381,7 +384,7 @@ const submitRating = async () => {
   }
   
   if (!currentUser.value) {
-    alert('Debes iniciar sesión para calificar')
+    openAuthModal()
     return
   }
   
@@ -472,7 +475,7 @@ const cancelRating = () => {
 // Validate bathroom
 const validateBathroomAction = async () => {
   if (!currentUser.value) {
-    alert('Debes iniciar sesión para validar baños')
+    openAuthModal()
     return
   }
   

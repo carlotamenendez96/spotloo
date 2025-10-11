@@ -364,6 +364,62 @@ export const getRecentActions = async (limit = 10) => {
       console.warn('Could not load bathrooms:', error.message)
     }
     
+    // Get recent validations
+    try {
+      const validations = await getDocuments('validations', [], {
+        orderBy: { field: 'createdAt', direction: 'desc' },
+        limit: limit * 2
+      })
+      
+      // For each validation, get the validator's name and bathroom name
+      const validationActions = await Promise.all(
+        validations.map(async (validation) => {
+          let validatorName = 'Usuario anónimo'
+          let bathroomTitle = 'un baño'
+          
+          // Get validator's displayName
+          if (validation.userUID) {
+            try {
+              const userDoc = await getDocument('users', validation.userUID)
+              if (userDoc && userDoc.displayName) {
+                validatorName = userDoc.displayName
+              }
+            } catch (error) {
+              console.warn('Could not load validator name:', validation.id)
+            }
+          }
+          
+          // Get bathroom title
+          if (validation.bathroomID) {
+            try {
+              const bathroomDoc = await getDocument('bathrooms', validation.bathroomID)
+              if (bathroomDoc && bathroomDoc.title) {
+                bathroomTitle = bathroomDoc.title
+              }
+            } catch (error) {
+              console.warn('Could not load bathroom title:', validation.bathroomID)
+            }
+          }
+          
+          return {
+            id: `validation-${validation.id}`,
+            userId: validation.userUID,
+            userName: validatorName,
+            points: 5, // 5 points for validation
+            action: 'validation',
+            description: `${validatorName} validó el baño "${bathroomTitle}"`,
+            bathroomId: validation.bathroomID,
+            createdAt: validation.createdAt
+          }
+        })
+      )
+      
+      allActions.push(...validationActions)
+      console.log('Loaded recent validations:', validationActions.length)
+    } catch (error) {
+      console.warn('Could not load validations:', error.message)
+    }
+    
     // Sort all actions by date (most recent first)
     allActions.sort((a, b) => {
       const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt)

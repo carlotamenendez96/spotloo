@@ -7,20 +7,23 @@ service cloud.firestore {
     // ============================================
     // Regla CRÍTICA: Los puntos solo pueden ser actualizados por Cloud Functions
     match /users/{userId} {
-      // Los usuarios pueden LEER su propio documento
-      allow read: if request.auth != null && request.auth.uid == userId;
+      // Los usuarios autenticados pueden LEER cualquier documento de usuario
+      // (necesario para mostrar rankings y nombres de otros usuarios)
+      allow read: if request.auth != null;
       
-      // ❌ IMPORTANTE: Los usuarios NO pueden ESCRIBIR directamente
-      // Solo las Cloud Functions (con permisos admin) pueden actualizar
-      // points, contributions, y stats
-      allow write: if false;
+      // Los usuarios pueden CREAR su propio documento al registrarse
+      allow create: if request.auth != null 
+                    && request.auth.uid == userId;
       
-      // Nota: Si necesitas que los usuarios actualicen su perfil (nombre, foto, etc.)
-      // puedes permitir actualizaciones limitadas:
-      // allow update: if request.auth != null 
-      //               && request.auth.uid == userId
-      //               && !request.resource.data.diff(resource.data).affectedKeys()
-      //                  .hasAny(['points', 'contributions', 'stats']);
+      // Los usuarios pueden ACTUALIZAR su perfil (nombre, foto, preferencias)
+      // pero NO pueden modificar points, contributions, ni stats
+      allow update: if request.auth != null 
+                    && request.auth.uid == userId
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                       .hasAny(['points', 'contributions']);
+      
+      // ❌ NO se pueden ELIMINAR documentos de usuario
+      allow delete: if false;
     }
     
     // ============================================
@@ -103,6 +106,23 @@ service cloud.firestore {
       // Solo el autor puede eliminar su review
       allow delete: if request.auth != null 
                     && resource.data.userId == request.auth.uid;
+    }
+    
+    // ============================================
+    // COLECCIÓN: validations
+    // ============================================
+    match /validations/{validationId} {
+      // Los usuarios autenticados pueden LEER validations
+      allow read: if request.auth != null;
+      
+      // Los usuarios pueden CREAR sus propias validaciones
+      allow create: if request.auth != null 
+                    && request.resource.data.userUID == request.auth.uid
+                    && request.resource.data.keys().hasAll(['bathroomID', 'userUID', 'createdAt']);
+      
+      // ❌ NO se pueden MODIFICAR o ELIMINAR validaciones una vez creadas
+      allow update: if false;
+      allow delete: if false;
     }
   }
 }

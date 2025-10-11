@@ -403,6 +403,13 @@ export const validateBathroom = async (bathroomId, userId) => {
       updatedAt: new Date()
     })
     
+    // Create validation record for tracking
+    await addDocument('validations', {
+      bathroomID: bathroomId,
+      userUID: userId,
+      createdAt: new Date()
+    })
+    
     // Note: Points will be awarded automatically by Cloud Function (onBathroomUpdated)
     
     console.log('Bathroom validated successfully:', {

@@ -233,14 +233,16 @@ const loadRankingData = async () => {
       ]
     }
     
-    // Process user data
-    topUsers.value = users.map(user => ({
-      id: user.uid || user.id,
-      name: user.displayName || 'Usuario anónimo',
-      points: user.points || 0,
-      contributions: user.contributions || 0,
-      avatar: user.photoURL || null
-    }))
+    // Process user data (limit to top 10 users)
+    topUsers.value = users
+      .slice(0, 10)
+      .map(user => ({
+        id: user.uid || user.id,
+        name: user.displayName || 'Usuario anónimo',
+        points: user.points || 0,
+        contributions: user.contributions || 0,
+        avatar: user.photoURL || null
+      }))
     
     // Calculate statistics
     totalBathrooms.value = bathrooms.length

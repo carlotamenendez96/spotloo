@@ -33,9 +33,10 @@ import AuthModal from './components/AuthModal.vue'
 import ContribModal from './components/ContribModal.vue'
 import FABAdd from './components/FABAdd.vue'
 import { initializeUserState, setupAuthListener, isLoggedIn } from './services/userService.js'
+import { useModal } from './composables/useModal.js'
 
 // Modal states
-const isAuthModalVisible = ref(false)
+const { isAuthModalVisible, openAuthModal, closeAuthModal } = useModal()
 const isContribModalVisible = ref(false)
 
 onMounted(() => {
@@ -49,14 +50,6 @@ onMounted(() => {
 })
 
 // Modal handlers
-const openAuthModal = () => {
-  isAuthModalVisible.value = true
-}
-
-const closeAuthModal = () => {
-  isAuthModalVisible.value = false
-}
-
 const openContribModal = () => {
   isContribModalVisible.value = true
 }

@@ -250,6 +250,9 @@ import { isLoggedIn, currentUser } from '../services/userService.js'
 import { useRouter } from 'vue-router'
 import { initMap, destroyMap, getMapInstanceById, reverseGeocode } from '../services/mapbox.js'
 import mapboxgl from 'mapbox-gl'
+import { useModal } from '../composables/useModal.js'
+
+const { openAuthModal } = useModal()
 
 // Props
 const props = defineProps({
@@ -415,7 +418,8 @@ const handleSubmit = async () => {
   try {
     // Check if user is logged in
     if (!currentUser.value?.uid) {
-      errorMessage.value = 'Debes iniciar sesión para añadir baños'
+      closeModal()
+      openAuthModal()
       return
     }
     
