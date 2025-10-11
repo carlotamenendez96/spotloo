@@ -1,4 +1,4 @@
-// Mapbox GL JS configuration and utilities
+// Mapbox GL JS configuration and utilities - Updated for multi-instance support v2
 import mapboxgl from 'mapbox-gl'
 
 // Mapbox configuration
@@ -16,8 +16,8 @@ const defaultMapConfig = {
   bearing: 0
 }
 
-// Map instance
-let mapInstance = null
+// Map instances storage - Fixed version
+const mapInstances = new Map()
 
 /**
  * Initialize Mapbox map
@@ -33,37 +33,45 @@ export const initMap = async (containerId, options = {}) => {
       throw new Error(`Map container with id "${containerId}" not found`)
     }
 
-    // Clean up existing map instance
-    if (mapInstance && typeof mapInstance.remove === 'function') {
-      mapInstance.remove()
-      mapInstance = null
+    // Clean up existing map instance for this container
+    if (mapInstances.has(containerId)) {
+      const existingMap = mapInstances.get(containerId)
+      if (existingMap && typeof existingMap.remove === 'function') {
+        existingMap.remove()
+      }
+      mapInstances.delete(containerId)
     }
 
     const config = { ...defaultMapConfig, ...options }
     
-    mapInstance = new mapboxgl.Map({
+    const mapInstance = new mapboxgl.Map({
       container: containerId,
       ...config
     })
 
-    // Add navigation controls
-    mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right')
-    
-    // Add geolocate control
-    mapInstance.addControl(new mapboxgl.GeolocateControl({
-      positionOptions: {
-        enableHighAccuracy: true
-      },
-      trackUserLocation: true,
-      showUserHeading: true
-    }), 'top-right')
+    // Add navigation controls only for main map (not modal maps)
+    if (containerId === 'map') {
+      mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right')
+      
+      // Add geolocate control only for main map
+      mapInstance.addControl(new mapboxgl.GeolocateControl({
+        positionOptions: {
+          enableHighAccuracy: true
+        },
+        trackUserLocation: true,
+        showUserHeading: true
+      }), 'top-right')
+    }
 
     // Wait for map to load
     await new Promise((resolve) => {
       mapInstance.on('load', resolve)
     })
 
-    console.log('Mapbox map initialized')
+    // Store the map instance
+    mapInstances.set(containerId, mapInstance)
+
+    console.log('Mapbox map initialized for container:', containerId)
     return mapInstance
   } catch (error) {
     console.error('Error initializing Mapbox:', error)
@@ -80,22 +88,33 @@ export const initMap = async (containerId, options = {}) => {
 export const initializeMapbox = initMap
 
 /**
- * Get current map instance
+ * Get current map instance (main map)
  * @returns {mapboxgl.Map|null}
  */
 export const getMapInstance = () => {
-  return mapInstance
+  return mapInstances.get('map') || null
+}
+
+/**
+ * Get map instance by container ID
+ * @param {string} containerId - Container ID
+ * @returns {mapboxgl.Map|null}
+ */
+export const getMapInstanceById = (containerId) => {
+  return mapInstances.get(containerId) || null
 }
 
 /**
  * Add a marker to the map
  * @param {object} coordinates - { longitude, latitude }
  * @param {object} options - Marker options
+ * @param {string} containerId - Map container ID (defaults to main map)
  * @returns {mapboxgl.Marker}
  */
-export const addMarker = (coordinates, options = {}) => {
+export const addMarker = (coordinates, options = {}, containerId = 'map') => {
+  const mapInstance = mapInstances.get(containerId)
   if (!mapInstance) {
-    throw new Error('Map not initialized')
+    throw new Error(`Map not initialized for container: ${containerId}`)
   }
 
   const marker = new mapboxgl.Marker(options)
@@ -110,11 +129,13 @@ export const addMarker = (coordinates, options = {}) => {
  * @param {object} coordinates - { longitude, latitude }
  * @param {string} content - Popup content HTML
  * @param {object} options - Popup options
+ * @param {string} containerId - Map container ID (defaults to main map)
  * @returns {mapboxgl.Popup}
  */
-export const addPopup = (coordinates, content, options = {}) => {
+export const addPopup = (coordinates, content, options = {}, containerId = 'map') => {
+  const mapInstance = mapInstances.get(containerId)
   if (!mapInstance) {
-    throw new Error('Map not initialized')
+    throw new Error(`Map not initialized for container: ${containerId}`)
   }
 
   const popup = new mapboxgl.Popup(options)
@@ -129,10 +150,12 @@ export const addPopup = (coordinates, content, options = {}) => {
  * Center map on coordinates
  * @param {object} coordinates - { longitude, latitude }
  * @param {number} zoom - Zoom level
+ * @param {string} containerId - Map container ID (defaults to main map)
  */
-export const centerMap = (coordinates, zoom = 13) => {
+export const centerMap = (coordinates, zoom = 13, containerId = 'map') => {
+  const mapInstance = mapInstances.get(containerId)
   if (!mapInstance) {
-    throw new Error('Map not initialized')
+    throw new Error(`Map not initialized for container: ${containerId}`)
   }
 
   mapInstance.flyTo({
@@ -145,10 +168,12 @@ export const centerMap = (coordinates, zoom = 13) => {
 /**
  * Fit map to bounds
  * @param {array} bounds - [[minLng, minLat], [maxLng, maxLat]]
+ * @param {string} containerId - Map container ID (defaults to main map)
  */
-export const fitMapToBounds = (bounds) => {
+export const fitMapToBounds = (bounds, containerId = 'map') => {
+  const mapInstance = mapInstances.get(containerId)
   if (!mapInstance) {
-    throw new Error('Map not initialized')
+    throw new Error(`Map not initialized for container: ${containerId}`)
   }
 
   mapInstance.fitBounds(bounds, {
@@ -158,11 +183,13 @@ export const fitMapToBounds = (bounds) => {
 
 /**
  * Get current map center
+ * @param {string} containerId - Map container ID (defaults to main map)
  * @returns {object} { longitude, latitude }
  */
-export const getMapCenter = () => {
+export const getMapCenter = (containerId = 'map') => {
+  const mapInstance = mapInstances.get(containerId)
   if (!mapInstance) {
-    throw new Error('Map not initialized')
+    throw new Error(`Map not initialized for container: ${containerId}`)
   }
 
   const center = mapInstance.getCenter()
@@ -174,11 +201,13 @@ export const getMapCenter = () => {
 
 /**
  * Get current map zoom
+ * @param {string} containerId - Map container ID (defaults to main map)
  * @returns {number}
  */
-export const getMapZoom = () => {
+export const getMapZoom = (containerId = 'map') => {
+  const mapInstance = mapInstances.get(containerId)
   if (!mapInstance) {
-    throw new Error('Map not initialized')
+    throw new Error(`Map not initialized for container: ${containerId}`)
   }
 
   return mapInstance.getZoom()
@@ -294,10 +323,12 @@ export const searchPlaces = async (query, options = {}) => {
 /**
  * Add click event listener to map
  * @param {function} callback - Callback function
+ * @param {string} containerId - Map container ID (defaults to main map)
  */
-export const onMapClick = (callback) => {
+export const onMapClick = (callback, containerId = 'map') => {
+  const mapInstance = mapInstances.get(containerId)
   if (!mapInstance) {
-    throw new Error('Map not initialized')
+    throw new Error(`Map not initialized for container: ${containerId}`)
   }
 
   mapInstance.on('click', callback)
@@ -306,10 +337,12 @@ export const onMapClick = (callback) => {
 /**
  * Remove click event listener from map
  * @param {function} callback - Callback function
+ * @param {string} containerId - Map container ID (defaults to main map)
  */
-export const offMapClick = (callback) => {
+export const offMapClick = (callback, containerId = 'map') => {
+  const mapInstance = mapInstances.get(containerId)
   if (!mapInstance) {
-    throw new Error('Map not initialized')
+    throw new Error(`Map not initialized for container: ${containerId}`)
   }
 
   mapInstance.off('click', callback)
@@ -318,10 +351,12 @@ export const offMapClick = (callback) => {
 /**
  * Add move event listener to map
  * @param {function} callback - Callback function
+ * @param {string} containerId - Map container ID (defaults to main map)
  */
-export const onMapMove = (callback) => {
+export const onMapMove = (callback, containerId = 'map') => {
+  const mapInstance = mapInstances.get(containerId)
   if (!mapInstance) {
-    throw new Error('Map not initialized')
+    throw new Error(`Map not initialized for container: ${containerId}`)
   }
 
   mapInstance.on('move', callback)
@@ -330,22 +365,42 @@ export const onMapMove = (callback) => {
 /**
  * Remove move event listener from map
  * @param {function} callback - Callback function
+ * @param {string} containerId - Map container ID (defaults to main map)
  */
-export const offMapMove = (callback) => {
+export const offMapMove = (callback, containerId = 'map') => {
+  const mapInstance = mapInstances.get(containerId)
   if (!mapInstance) {
-    throw new Error('Map not initialized')
+    throw new Error(`Map not initialized for container: ${containerId}`)
   }
 
   mapInstance.off('move', callback)
 }
 
 // Cleanup
-export const destroyMap = () => {
+/**
+ * Destroy a specific map instance
+ * @param {string} containerId - Map container ID to destroy
+ */
+export const destroyMap = (containerId = 'map') => {
+  const mapInstance = mapInstances.get(containerId)
   if (mapInstance) {
     mapInstance.remove()
-    mapInstance = null
-    console.log('Mapbox map destroyed')
+    mapInstances.delete(containerId)
+    console.log(`Mapbox map destroyed for container: ${containerId}`)
   }
+}
+
+/**
+ * Destroy all map instances
+ */
+export const destroyAllMaps = () => {
+  mapInstances.forEach((mapInstance, containerId) => {
+    if (mapInstance) {
+      mapInstance.remove()
+      console.log(`Mapbox map destroyed for container: ${containerId}`)
+    }
+  })
+  mapInstances.clear()
 }
 
 // Export Mapbox GL JS for direct access if needed

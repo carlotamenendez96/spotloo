@@ -137,34 +137,14 @@ export const updateUserProfile = async (updates) => {
  */
 export const awardPoints = async (userId, points, action, description, bathroomId = null) => {
   try {
-    // Create points record
-    const pointsRecord = {
-      userId,
-      points,
-      action,
-      description,
-      bathroomId,
-      createdAt: new Date(),
-      timestamp: Date.now()
-    }
-    
-    // Try to add to points collection (may fail due to permissions)
-    try {
-      await addDocument('userPoints', pointsRecord)
-    } catch (error) {
-      console.warn('Could not save points record:', error.message)
-      // Continue without failing - points system is optional
-    }
-    
     // Try to update user document (may fail due to permissions)
     try {
       await updateUserPoints(userId, points)
+      console.log('Points awarded successfully:', { userId, points, action, description })
     } catch (error) {
       console.warn('Could not update user points:', error.message)
       // Continue without failing - points system is optional
     }
-    
-    console.log('Points awarded (local):', pointsRecord)
     
   } catch (error) {
     console.error('Error awarding points:', error)
@@ -254,18 +234,29 @@ export const getUserRanking = async () => {
 }
 
 /**
- * Get recent user actions
+ * Get recent user actions from ratings
  * @param {number} limit - Number of actions to return
  * @returns {Promise<Array>} Array of recent actions
  */
 export const getRecentActions = async (limit = 10) => {
   try {
-    const actions = await getDocuments('userPoints', [], {
+    const ratings = await getDocuments('ratings', [], {
       orderBy: { field: 'createdAt', direction: 'desc' },
       limit
     })
     
-    console.log('Loaded recent actions:', actions.length)
+    // Transform ratings into actions format
+    const actions = ratings.map(rating => ({
+      id: rating.id,
+      userId: rating.userUID,
+      points: 5, // 5 points for rating
+      action: 'rating',
+      description: `${rating.userName} calificó un baño con ${rating.rating} estrellas`,
+      bathroomId: rating.bathroomID,
+      createdAt: rating.createdAt
+    }))
+    
+    console.log('Loaded recent actions from ratings:', actions.length)
     return actions
   } catch (error) {
     console.error('Error loading recent actions:', error)

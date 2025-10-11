@@ -248,7 +248,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, watch, nextTick } from
 import { createBathroom } from '../services/bathroomService.js'
 import { isLoggedIn, currentUser } from '../services/userService.js'
 import { useRouter } from 'vue-router'
-import { initMap, destroyMap, getMapInstance } from '../services/mapbox.js'
+import { initMap, destroyMap, getMapInstanceById, reverseGeocode } from '../services/mapbox.js'
 import mapboxgl from 'mapbox-gl'
 
 // Props
@@ -292,12 +292,25 @@ const initializeMap = async () => {
     })
     
     // Add click event listener to map
-    mapInstance.value.on('click', (e) => {
+    mapInstance.value.on('click', async (e) => {
       const { lng, lat } = e.lngLat
       
       // Update form coordinates
       form.longitude = lng
       form.latitude = lat
+      
+      // Get address from coordinates using reverse geocoding
+      try {
+        const addressData = await reverseGeocode(lng, lat)
+        
+        // Update form address with the real address
+        if (addressData.place_name) {
+          form.address = addressData.place_name
+        }
+      } catch (error) {
+        console.error('Error getting address:', error)
+        // Don't fail if geocoding fails, just continue without address
+      }
       
       // Remove existing marker
       if (selectedMarker.value) {
@@ -328,9 +341,9 @@ watch(() => props.isVisible, async (isVisible) => {
       initializeMap()
     }, 100)
   } else {
-    // Cleanup map when modal closes
+    // Cleanup modal map when modal closes
     if (mapInstance.value) {
-      destroyMap()
+      destroyMap('contrib-map') // Only destroy the modal map, not the main map
       mapInstance.value = null
       selectedMarker.value = null
     }
@@ -340,7 +353,7 @@ watch(() => props.isVisible, async (isVisible) => {
 // Cleanup map when modal closes
 onUnmounted(() => {
   if (mapInstance.value) {
-    destroyMap()
+    destroyMap('contrib-map') // Only destroy the modal map, not the main map
     mapInstance.value = null
     selectedMarker.value = null
   }
@@ -406,13 +419,21 @@ const handleSubmit = async () => {
       return
     }
     
-    console.log('Creating bathroom:', form)
+    console.log('Creating bathroom with data:', {
+      title: form.title.trim(),
+      description: form.description.trim(),
+      country: form.country,
+      address: form.address.trim(),
+      latitude: form.latitude,
+      longitude: form.longitude,
+      amenities: form.amenities
+    })
     
     const bathroomData = {
       title: form.title.trim(),
       description: form.description.trim(),
       country: form.country,
-      address: form.address.trim(),
+      address: form.address.trim() || null, // Save as null if empty
       coordinates: {
         latitude: form.latitude,
         longitude: form.longitude
@@ -480,16 +501,33 @@ const removePhoto = () => {
 }
 
 // Get current location
-const getCurrentLocation = () => {
+const getCurrentLocation = async () => {
   if (!navigator.geolocation) {
     errorMessage.value = 'Geolocalización no soportada por este navegador'
     return
   }
   
   navigator.geolocation.getCurrentPosition(
-    (position) => {
+    async (position) => {
       form.latitude = position.coords.latitude
       form.longitude = position.coords.longitude
+      
+      // Get address from current location coordinates
+      try {
+        console.log('Getting address for current location:', position.coords.longitude, position.coords.latitude)
+        const addressData = await reverseGeocode(position.coords.longitude, position.coords.latitude)
+        console.log('Current location address data:', addressData)
+        
+        // Update form address with the real address
+        if (addressData.place_name) {
+          form.address = addressData.place_name
+          console.log('Current location address set to:', form.address)
+        }
+      } catch (error) {
+        console.error('Error getting current location address:', error)
+        // Don't fail if geocoding fails, just continue without address
+      }
+      
       errorMessage.value = ''
     },
     (error) => {

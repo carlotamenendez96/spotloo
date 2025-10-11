@@ -29,7 +29,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import { initMap, destroyMap, getMapInstance, addMarker } from '../services/mapbox.js'
+import { initMap, destroyAllMaps, getMapInstance, addMarker } from '../services/mapbox.js'
 import { loadBathroomsInBounds } from '../services/bathroomService.js'
 import { onSnapshot, collection } from 'firebase/firestore'
 import { db } from '../services/firebase.js'
@@ -253,7 +253,7 @@ onUnmounted(() => {
   // Clean up markers
   clearMarkers()
   
-  // Clean up map
-  destroyMap()
+  // Clean up all maps
+  destroyAllMaps()
 })
 </script>

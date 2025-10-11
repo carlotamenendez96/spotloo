@@ -305,14 +305,14 @@ const loadBathroomDetails = async (bathroomData) => {
   
   isLoading.value = true
   try {
-    console.log('Loading bathroom details:', bathroomData.title)
+    console.log('Loading bathroom details for:', bathroomData.title)
     
     // Use the bathroom data directly from the map marker
     bathroom.value = {
       id: bathroomData.id,
-      title: bathroomData.title,
+      title: bathroomData.title || 'Sin título',
       description: bathroomData.description || 'Sin descripción disponible',
-      address: bathroomData.address || 'Dirección no disponible',
+      address: (bathroomData.address && bathroomData.address.trim()) || 'Dirección no disponible',
       country: bathroomData.country || 'País no disponible',
       rating: bathroomData.rating || 0,
       reviews: bathroomData.reviews || 0,
@@ -322,6 +322,7 @@ const loadBathroomDetails = async (bathroomData) => {
       status: bathroomData.status || 'pending',
       validated: bathroomData.validated || false
     }
+    
     
     // Check if current user has already rated this bathroom
     if (currentUser.value) {

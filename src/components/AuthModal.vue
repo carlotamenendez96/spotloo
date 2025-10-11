@@ -271,7 +271,34 @@ const handleSubmit = async () => {
     
   } catch (error) {
     console.error('Auth error:', error)
-    errorMessage.value = error.message || 'Ha ocurrido un error'
+    
+    // Mensaje amigable por defecto
+    let userFriendlyMessage = "Ha ocurrido un error inesperado. Inténtalo más tarde."
+    
+    // Manejo específico de errores según código de Firebase
+    if (error.code === 'auth/invalid-credential') {
+      userFriendlyMessage = "La contraseña o el correo electrónico son incorrectos. Verifica tus datos."
+    } else if (error.code === 'auth/user-disabled') {
+      userFriendlyMessage = "Tu cuenta ha sido deshabilitada."
+    } else if (error.code === 'auth/too-many-requests') {
+      userFriendlyMessage = "Acceso temporalmente bloqueado debido a demasiados intentos fallidos. Inténtalo más tarde."
+    } else if (error.code === 'auth/user-not-found') {
+      userFriendlyMessage = "No existe una cuenta con este correo electrónico."
+    } else if (error.code === 'auth/wrong-password') {
+      userFriendlyMessage = "La contraseña es incorrecta."
+    } else if (error.code === 'auth/email-already-in-use') {
+      userFriendlyMessage = "Ya existe una cuenta con este correo electrónico."
+    } else if (error.code === 'auth/weak-password') {
+      userFriendlyMessage = "La contraseña es demasiado débil. Debe tener al menos 6 caracteres."
+    } else if (error.code === 'auth/invalid-email') {
+      userFriendlyMessage = "El formato del correo electrónico no es válido."
+    } else if (error.code === 'auth/operation-not-allowed') {
+      userFriendlyMessage = "Este método de autenticación no está habilitado."
+    } else if (error.code === 'auth/network-request-failed') {
+      userFriendlyMessage = "Error de conexión. Verifica tu conexión a internet."
+    }
+    
+    errorMessage.value = userFriendlyMessage
   } finally {
     isLoading.value = false
   }
@@ -322,7 +349,28 @@ const signInWithGoogle = async () => {
     
   } catch (error) {
     console.error('Google auth error:', error)
-    errorMessage.value = error.message || 'Error al iniciar sesión con Google'
+    
+    // Mensaje amigable por defecto
+    let userFriendlyMessage = "Ha ocurrido un error al iniciar sesión con Google. Inténtalo más tarde."
+    
+    // Manejo específico de errores según código de Firebase
+    if (error.code === 'auth/popup-closed-by-user') {
+      userFriendlyMessage = "Has cerrado la ventana de inicio de sesión. Inténtalo de nuevo."
+    } else if (error.code === 'auth/popup-blocked') {
+      userFriendlyMessage = "El navegador ha bloqueado la ventana emergente. Por favor, habilita las ventanas emergentes."
+    } else if (error.code === 'auth/cancelled-popup-request') {
+      userFriendlyMessage = "Se canceló la solicitud de inicio de sesión."
+    } else if (error.code === 'auth/account-exists-with-different-credential') {
+      userFriendlyMessage = "Ya existe una cuenta con este correo usando otro método de inicio de sesión."
+    } else if (error.code === 'auth/user-disabled') {
+      userFriendlyMessage = "Tu cuenta ha sido deshabilitada."
+    } else if (error.code === 'auth/too-many-requests') {
+      userFriendlyMessage = "Acceso temporalmente bloqueado debido a demasiados intentos fallidos. Inténtalo más tarde."
+    } else if (error.code === 'auth/network-request-failed') {
+      userFriendlyMessage = "Error de conexión. Verifica tu conexión a internet."
+    }
+    
+    errorMessage.value = userFriendlyMessage
   } finally {
     isLoading.value = false
   }
