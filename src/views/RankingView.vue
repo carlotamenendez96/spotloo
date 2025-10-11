@@ -124,12 +124,13 @@
           </div>
           
           <!-- Pagination controls -->
-          <div v-if="totalPages > 1" class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-            <div class="text-sm text-gray-600">
+          <div v-if="totalPages > 1" class="px-6 py-4 border-t border-gray-200">
+            <div class="text-sm text-gray-600 mb-3 text-center">
               Página {{ currentPage }} de {{ totalPages }} ({{ recentContributions.length }} contribuciones)
             </div>
             
-            <div class="flex space-x-2">
+            <div class="flex justify-center items-center space-x-1">
+              <!-- Previous button -->
               <button 
                 @click="previousPage"
                 :disabled="currentPage === 1"
@@ -137,6 +138,23 @@
               >
                 Anterior
               </button>
+              
+              <!-- Page numbers -->
+              <button
+                v-for="page in visiblePages"
+                :key="page"
+                @click="goToPage(page)"
+                :class="[
+                  'px-3 py-1 border rounded-md text-sm font-medium transition-colors',
+                  page === currentPage 
+                    ? 'bg-primary-600 text-white border-primary-600' 
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                ]"
+              >
+                {{ page }}
+              </button>
+              
+              <!-- Next button -->
               <button 
                 @click="nextPage"
                 :disabled="currentPage === totalPages"
@@ -280,6 +298,29 @@ const paginatedContributions = computed(() => {
   return recentContributions.value.slice(start, end)
 })
 
+// Computed property for visible page numbers (max 10)
+const visiblePages = computed(() => {
+  const total = totalPages.value
+  const current = currentPage.value
+  const maxVisible = 10
+  
+  // If total pages is less than or equal to maxVisible, show all
+  if (total <= maxVisible) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+  
+  // Calculate start and end of visible range
+  let start = Math.max(1, current - Math.floor(maxVisible / 2))
+  let end = Math.min(total, start + maxVisible - 1)
+  
+  // Adjust start if we're near the end
+  if (end - start + 1 < maxVisible) {
+    start = Math.max(1, end - maxVisible + 1)
+  }
+  
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+})
+
 // Pagination functions
 const nextPage = () => {
   if (currentPage.value < totalPages.value) {
@@ -290,6 +331,12 @@ const nextPage = () => {
 const previousPage = () => {
   if (currentPage.value > 1) {
     currentPage.value--
+  }
+}
+
+const goToPage = (page) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
   }
 }
 

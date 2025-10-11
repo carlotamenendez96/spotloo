@@ -29,7 +29,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import { initMap, destroyAllMaps, getMapInstance, addMarker } from '../services/mapbox.js'
+import { initMap, destroyAllMaps, getMapInstance, addMarker, saveMapPosition } from '../services/mapbox.js'
 import { loadBathroomsInBounds } from '../services/bathroomService.js'
 import { onSnapshot, collection } from 'firebase/firestore'
 import { db } from '../services/firebase.js'
@@ -218,10 +218,15 @@ onMounted(async () => {
     // Load initial bathrooms
     await loadBathroomsInVisibleBounds()
     
-    // Listen for map movement to reload bathrooms
+    // Listen for map movement to reload bathrooms and save position
     map.value.on('moveend', () => {
       console.log('Map moved, reloading bathrooms...')
       loadBathroomsInVisibleBounds()
+      
+      // Save current map position
+      const center = map.value.getCenter()
+      const zoom = map.value.getZoom()
+      saveMapPosition(center.lng, center.lat, zoom)
     })
     
     // Listen for zoom changes to reload bathrooms

@@ -16,6 +16,54 @@ const defaultMapConfig = {
   bearing: 0
 }
 
+// LocalStorage keys
+const STORAGE_KEYS = {
+  MAP_CENTER: 'spotloo_map_center',
+  MAP_ZOOM: 'spotloo_map_zoom'
+}
+
+/**
+ * Save map position to localStorage
+ * @param {number} longitude - Longitude coordinate
+ * @param {number} latitude - Latitude coordinate
+ * @param {number} zoom - Zoom level
+ */
+export const saveMapPosition = (longitude, latitude, zoom) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.MAP_CENTER, JSON.stringify({ longitude, latitude }))
+    localStorage.setItem(STORAGE_KEYS.MAP_ZOOM, zoom.toString())
+    console.log('Map position saved:', { longitude, latitude, zoom })
+  } catch (error) {
+    console.error('Error saving map position:', error)
+  }
+}
+
+/**
+ * Load saved map position from localStorage
+ * @returns {object|null} { center: [lng, lat], zoom: number } or null if not found
+ */
+export const loadSavedMapPosition = () => {
+  try {
+    const savedCenter = localStorage.getItem(STORAGE_KEYS.MAP_CENTER)
+    const savedZoom = localStorage.getItem(STORAGE_KEYS.MAP_ZOOM)
+    
+    if (savedCenter && savedZoom) {
+      const center = JSON.parse(savedCenter)
+      const zoom = parseFloat(savedZoom)
+      console.log('Loaded saved map position:', { center, zoom })
+      return {
+        center: [center.longitude, center.latitude],
+        zoom
+      }
+    }
+    
+    return null
+  } catch (error) {
+    console.error('Error loading saved map position:', error)
+    return null
+  }
+}
+
 // Map instances storage - Fixed version
 const mapInstances = new Map()
 
@@ -42,7 +90,15 @@ export const initMap = async (containerId, options = {}) => {
       mapInstances.delete(containerId)
     }
 
-    const config = { ...defaultMapConfig, ...options }
+    // Load saved position for main map
+    let config = { ...defaultMapConfig, ...options }
+    if (containerId === 'map' && !options.center) {
+      const savedPosition = loadSavedMapPosition()
+      if (savedPosition) {
+        config.center = savedPosition.center
+        config.zoom = savedPosition.zoom
+      }
+    }
     
     const mapInstance = new mapboxgl.Map({
       container: containerId,
@@ -54,13 +110,22 @@ export const initMap = async (containerId, options = {}) => {
       mapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right')
       
       // Add geolocate control only for main map
-      mapInstance.addControl(new mapboxgl.GeolocateControl({
+      const geolocateControl = new mapboxgl.GeolocateControl({
         positionOptions: {
           enableHighAccuracy: true
         },
         trackUserLocation: true,
         showUserHeading: true
-      }), 'top-right')
+      })
+      
+      mapInstance.addControl(geolocateControl, 'top-right')
+      
+      // Save position when user uses geolocation
+      geolocateControl.on('geolocate', (position) => {
+        const { longitude, latitude } = position.coords
+        const zoom = mapInstance.getZoom()
+        saveMapPosition(longitude, latitude, zoom)
+      })
     }
 
     // Wait for map to load
