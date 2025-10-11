@@ -235,7 +235,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { getBathroomDetails, rateBathroom as rateBathroomService, checkUserRating, validateBathroom, hasUserValidated } from '../services/bathroomService.js'
-import { addDocument } from '../services/firebase.js'
+import { addDocument, getDocument } from '../services/firebase.js'
 import { currentUser } from '../services/userService.js'
 
 // Props
@@ -388,11 +388,26 @@ const submitRating = async () => {
   isSubmittingRating.value = true
   
   try {
+    // Ensure we have the latest displayName from Firestore
+    let displayName = currentUser.value.displayName
+    if (!displayName) {
+      try {
+        const userDoc = await getDocument('users', currentUser.value.uid)
+        if (userDoc && userDoc.displayName) {
+          displayName = userDoc.displayName
+          console.log('DisplayName loaded from Firestore:', displayName)
+        }
+      } catch (error) {
+        console.warn('Could not load displayName from Firestore:', error.message)
+      }
+    }
+    
     console.log('Submitting rating:', {
       bathroomId: props.bathroom?.id,
       rating: rating.value,
       review: reviewText.value,
-      userUID: currentUser.value.uid
+      userUID: currentUser.value.uid,
+      displayName: displayName
     })
     
     // Create rating document in Firestore
@@ -402,7 +417,7 @@ const submitRating = async () => {
       rating: rating.value,
       comment: reviewText.value.trim() || '',
       createdAt: new Date(),
-      userName: currentUser.value.displayName || 'Usuario anónimo'
+      userName: displayName || 'Usuario anónimo'
     }
     
     // Add to ratings collection
@@ -423,9 +438,25 @@ const submitRating = async () => {
     isRatingModal.value = false
     hasUserRated.value = true
     
+    console.log('✅ Valoración enviada correctamente')
+    
+    // Close main modal after successful rating
+    closeModal()
     
   } catch (error) {
-    console.error('Error submitting rating:', error)
+    console.error('❌ Error al enviar la valoración:', error)
+    
+    // Log specific error type
+    if (error.code === 'permission-denied' || error.message?.includes('permissions')) {
+      console.error('Error de permisos: El usuario no tiene permisos suficientes')
+    }
+    
+    // Reset and close modal even on error
+    rating.value = 0
+    reviewText.value = ''
+    isRatingModal.value = false
+    closeModal()
+    
   } finally {
     isSubmittingRating.value = false
   }

@@ -289,31 +289,92 @@ export const getUserRanking = async () => {
 }
 
 /**
- * Get recent user actions from ratings
+ * Get recent user actions from ratings and bathroom creations
  * @param {number} limit - Number of actions to return
  * @returns {Promise<Array>} Array of recent actions
  */
 export const getRecentActions = async (limit = 10) => {
   try {
-    const ratings = await getDocuments('ratings', [], {
-      orderBy: { field: 'createdAt', direction: 'desc' },
-      limit
+    const allActions = []
+    
+    // Get recent ratings
+    try {
+      const ratings = await getDocuments('ratings', [], {
+        orderBy: { field: 'createdAt', direction: 'desc' },
+        limit: limit * 2 // Get more to ensure we have enough after combining
+      })
+      
+      const ratingActions = ratings.map(rating => ({
+        id: `rating-${rating.id}`,
+        userId: rating.userUID,
+        userName: rating.userName || 'Usuario anónimo',
+        points: 5, // 5 points for rating
+        action: 'rating',
+        description: `${rating.userName || 'Usuario anónimo'} calificó un baño con ${rating.rating} estrellas`,
+        bathroomId: rating.bathroomID,
+        createdAt: rating.createdAt
+      }))
+      
+      allActions.push(...ratingActions)
+      console.log('Loaded recent ratings:', ratingActions.length)
+    } catch (error) {
+      console.warn('Could not load ratings:', error.message)
+    }
+    
+    // Get recent bathroom creations
+    try {
+      const bathrooms = await getDocuments('bathrooms', [], {
+        orderBy: { field: 'createdAt', direction: 'desc' },
+        limit: limit * 2
+      })
+      
+      // For each bathroom, get the creator's name from users collection
+      const bathroomActions = await Promise.all(
+        bathrooms.map(async (bathroom) => {
+          let creatorName = 'Usuario anónimo'
+          
+          // Try to get creator's displayName from users collection
+          if (bathroom.createdBy) {
+            try {
+              const userDoc = await getDocument('users', bathroom.createdBy)
+              if (userDoc && userDoc.displayName) {
+                creatorName = userDoc.displayName
+              }
+            } catch (error) {
+              console.warn('Could not load creator name for bathroom:', bathroom.id)
+            }
+          }
+          
+          return {
+            id: `bathroom-${bathroom.id}`,
+            userId: bathroom.createdBy,
+            userName: creatorName,
+            points: 10, // 10 points for creating bathroom
+            action: 'contribution',
+            description: `${creatorName} añadió el baño "${bathroom.title}"`,
+            bathroomId: bathroom.id,
+            createdAt: bathroom.createdAt
+          }
+        })
+      )
+      
+      allActions.push(...bathroomActions)
+      console.log('Loaded recent bathroom creations:', bathroomActions.length)
+    } catch (error) {
+      console.warn('Could not load bathrooms:', error.message)
+    }
+    
+    // Sort all actions by date (most recent first)
+    allActions.sort((a, b) => {
+      const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt)
+      const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt)
+      return dateB - dateA
     })
     
-    // Transform ratings into actions format
-    const actions = ratings.map(rating => ({
-      id: rating.id,
-      userId: rating.userUID,
-      userName: rating.userName || 'Usuario anónimo',
-      points: 5, // 5 points for rating
-      action: 'rating',
-      description: `${rating.userName || 'Usuario anónimo'} calificó un baño con ${rating.rating} estrellas`,
-      bathroomId: rating.bathroomID,
-      createdAt: rating.createdAt
-    }))
-    
-    console.log('Loaded recent actions from ratings:', actions.length)
-    return actions
+    // Return only the requested limit
+    const limitedActions = allActions.slice(0, limit)
+    console.log('Total recent actions:', limitedActions.length)
+    return limitedActions
   } catch (error) {
     console.error('Error loading recent actions:', error)
     // Return empty array instead of throwing

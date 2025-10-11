@@ -232,16 +232,8 @@ export const rateBathroom = async (bathroomId, rating, userId, review = '') => {
       newTotalRating
     })
 
-    // TODO: Add review to separate reviews collection
-    if (review.trim()) {
-      await addDocument('reviews', {
-        bathroomId,
-        userId,
-        rating,
-        review: review.trim(),
-        createdAt: new Date()
-      })
-    }
+    // Note: Review/comment is already saved in the 'ratings' collection by DetailModal
+    // No need to save it separately in 'reviews' collection
 
     console.log('Bathroom rated:', bathroomId, rating)
   } catch (error) {
