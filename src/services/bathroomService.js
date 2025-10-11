@@ -7,7 +7,6 @@ import {
   deleteDocument,
   uploadFile 
 } from './firebase.js'
-import { awardPoints } from './userService.js'
 
 // Collection name for bathrooms
 const COLLECTION_NAME = 'bathrooms'
@@ -66,16 +65,7 @@ export const createBathroom = async (bathroomData) => {
     // Add to Firestore
     const docRef = await addDocument(COLLECTION_NAME, data)
     
-    // Award points to creator
-    if (bathroomData.createdBy) {
-      await awardPoints(
-        bathroomData.createdBy,
-        15, // 15 points for creating a bathroom
-        'contribution',
-        `Creó el baño "${bathroomData.title}"`,
-        docRef.id
-      )
-    }
+    // Note: Points will be awarded automatically by Cloud Function (onBathroomCreated)
     
     console.log('Bathroom created with ID:', docRef.id)
     return docRef.id
@@ -233,14 +223,7 @@ export const rateBathroom = async (bathroomId, rating, userId, review = '') => {
       updatedAt: new Date()
     })
     
-    // Award points to user for rating
-    await awardPoints(
-      userId,
-      5, // 5 points for rating
-      'rating',
-      `Calificó el baño "${bathroom.title}" con ${rating} estrellas`,
-      bathroomId
-    )
+    // Note: Points will be awarded automatically by Cloud Function (onRatingCreated)
     
     console.log('Updated bathroom rating:', {
       bathroomId,
@@ -428,14 +411,7 @@ export const validateBathroom = async (bathroomId, userId) => {
       updatedAt: new Date()
     })
     
-    // Award points to user for validation
-    await awardPoints(
-      userId,
-      10, // 10 points for validation
-      'validation',
-      `Validó el baño "${bathroom.title}"`,
-      bathroomId
-    )
+    // Note: Points will be awarded automatically by Cloud Function (onBathroomUpdated)
     
     console.log('Bathroom validated successfully:', {
       bathroomId,

@@ -156,8 +156,7 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import { signInWithEmail, signUpWithEmail, signInWithGoogle as signInWithGoogleService } from '../services/firebase.js'
-import { addDocument } from '../services/firebase.js'
+import { signInWithEmail, signUpWithEmail, signInWithGoogle as signInWithGoogleService, setDocument } from '../services/firebase.js'
 
 // Props
 const props = defineProps({
@@ -184,10 +183,18 @@ const form = reactive({
 
 // User state management
 const saveUserToStorage = (user) => {
+  // Ensure we have a display name
+  let displayName = user.displayName
+  if (!displayName && user.email) {
+    // Extract name from email (part before @)
+    const emailName = user.email.split('@')[0]
+    displayName = emailName.charAt(0).toUpperCase() + emailName.slice(1)
+  }
+  
   const userData = {
     uid: user.uid,
     email: user.email,
-    displayName: user.displayName,
+    displayName: displayName || 'Usuario',
     photoURL: user.photoURL,
     lastLogin: new Date().toISOString()
   }
@@ -240,9 +247,9 @@ const handleSubmit = async () => {
       console.log('Signing up with:', form.email, form.name)
       const userCredential = await signUpWithEmail(form.email, form.password, form.name)
       
-      // Create user document in Firestore
+      // Create user document in Firestore with UID as document ID
       try {
-        await addDocument('users', {
+        await setDocument('users', userCredential.user.uid, {
           uid: userCredential.user.uid,
           email: userCredential.user.email,
           displayName: form.name,
@@ -253,8 +260,8 @@ const handleSubmit = async () => {
             notifications: true,
             publicProfile: true
           }
-        })
-        console.log('User document created in Firestore')
+        }, false) // false = don't merge, create new document
+        console.log('User document created in Firestore with ID:', userCredential.user.uid)
       } catch (firestoreError) {
         console.error('Error creating user document:', firestoreError)
         // Don't fail the registration if Firestore fails
@@ -316,11 +323,9 @@ const signInWithGoogle = async () => {
     console.log('Signing in with Google')
     const result = await signInWithGoogleService()
     
-    // Check if user document exists, create if not
+    // Create or update user document in Firestore with UID as document ID
     try {
-      // TODO: Check if user document exists in Firestore
-      // For now, we'll create it if it doesn't exist
-      await addDocument('users', {
+      await setDocument('users', result.user.uid, {
         uid: result.user.uid,
         email: result.user.email,
         displayName: result.user.displayName,
@@ -332,8 +337,8 @@ const signInWithGoogle = async () => {
           notifications: true,
           publicProfile: true
         }
-      })
-      console.log('User document created/updated in Firestore')
+      }, true) // true = merge with existing data if document exists
+      console.log('User document created/updated in Firestore with ID:', result.user.uid)
     } catch (firestoreError) {
       console.error('Error creating user document:', firestoreError)
       // Don't fail the login if Firestore fails

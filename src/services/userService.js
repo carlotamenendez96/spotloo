@@ -74,7 +74,7 @@ export const signOut = async () => {
  * Setup Firebase auth state listener
  */
 export const setupAuthListener = () => {
-  return onAuthStateChange((user) => {
+  return onAuthStateChange(async (user) => {
     if (user) {
       // User is signed in
       const userData = {
@@ -84,6 +84,30 @@ export const setupAuthListener = () => {
         photoURL: user.photoURL,
         lastLogin: new Date().toISOString()
       }
+      
+      // Load user data from Firestore to get points, contributions and displayName
+      try {
+        const userDoc = await getDocument('users', user.uid)
+        if (userDoc) {
+          userData.points = userDoc.points || 0
+          userData.contributions = userDoc.contributions || 0
+          userData.createdAt = userDoc.createdAt
+          // Use displayName from Firestore if Auth displayName is not set
+          if (!userData.displayName && userDoc.displayName) {
+            userData.displayName = userDoc.displayName
+          }
+          console.log('User data loaded from Firestore:', { 
+            uid: user.uid, 
+            displayName: userData.displayName,
+            points: userData.points, 
+            contributions: userData.contributions 
+          })
+        }
+      } catch (error) {
+        console.warn('Could not load user data from Firestore:', error.message)
+        // Continue without user stats
+      }
+      
       setCurrentUser(userData)
     } else {
       // User is signed out
@@ -92,6 +116,37 @@ export const setupAuthListener = () => {
     
     isLoading.value = false
   })
+}
+
+/**
+ * Sync user data from Firestore
+ * Updates points and contributions in local state
+ */
+export const syncUserData = async () => {
+  if (!currentUser.value) {
+    return
+  }
+  
+  try {
+    const userDoc = await getDocument('users', currentUser.value.uid)
+    if (userDoc) {
+      currentUser.value.points = userDoc.points || 0
+      currentUser.value.contributions = userDoc.contributions || 0
+      currentUser.value.createdAt = userDoc.createdAt
+      // Update displayName from Firestore if not set
+      if (!currentUser.value.displayName && userDoc.displayName) {
+        currentUser.value.displayName = userDoc.displayName
+      }
+      setCurrentUser(currentUser.value)
+      console.log('User data synced:', { 
+        displayName: currentUser.value.displayName,
+        points: currentUser.value.points, 
+        contributions: currentUser.value.contributions 
+      })
+    }
+  } catch (error) {
+    console.error('Error syncing user data:', error)
+  }
 }
 
 /**
@@ -249,9 +304,10 @@ export const getRecentActions = async (limit = 10) => {
     const actions = ratings.map(rating => ({
       id: rating.id,
       userId: rating.userUID,
+      userName: rating.userName || 'Usuario anónimo',
       points: 5, // 5 points for rating
       action: 'rating',
-      description: `${rating.userName} calificó un baño con ${rating.rating} estrellas`,
+      description: `${rating.userName || 'Usuario anónimo'} calificó un baño con ${rating.rating} estrellas`,
       bathroomId: rating.bathroomID,
       createdAt: rating.createdAt
     }))

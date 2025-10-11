@@ -1,7 +1,7 @@
 // Firebase configuration and initialization
 import { initializeApp } from 'firebase/app'
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, updateProfile } from 'firebase/auth'
-import { getFirestore, collection, doc, addDoc, getDocs, getDoc, updateDoc, deleteDoc, query, orderBy, limit, where } from 'firebase/firestore'
+import { getFirestore, collection, doc, addDoc, setDoc, getDocs, getDoc, updateDoc, deleteDoc, query, orderBy, limit, where } from 'firebase/firestore'
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 
 // Firebase configuration from environment variables
@@ -125,6 +125,28 @@ export const addDocument = async (collectionName, data) => {
     return docRef
   } catch (error) {
     console.error('Error adding document:', error)
+    throw error
+  }
+}
+
+/**
+ * Set a document with a specific ID (creates or overwrites)
+ * @param {string} collectionName - Name of the collection
+ * @param {string} documentId - ID for the document
+ * @param {object} data - Document data
+ * @param {boolean} merge - Whether to merge with existing data (default: true)
+ * @returns {Promise<void>}
+ */
+export const setDocument = async (collectionName, documentId, data, merge = true) => {
+  try {
+    const docRef = doc(db, collectionName, documentId)
+    await setDoc(docRef, {
+      ...data,
+      updatedAt: new Date()
+    }, { merge })
+    console.log('Document set with ID:', documentId)
+  } catch (error) {
+    console.error('Error setting document:', error)
     throw error
   }
 }

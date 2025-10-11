@@ -220,7 +220,7 @@ const loadRankingData = async () => {
     recentContributions.value = actions.map(action => ({
       id: action.id,
       title: action.description,
-      author: 'Usuario anónimo',
+      author: action.userName || 'Usuario anónimo',
       points: action.points,
       createdAt: action.createdAt,
       action: action.action

@@ -1,0 +1,109 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ============================================
+    // COLECCIÓN: users
+    // ============================================
+    // Regla CRÍTICA: Los puntos solo pueden ser actualizados por Cloud Functions
+    match /users/{userId} {
+      // Los usuarios pueden LEER su propio documento
+      allow read: if request.auth != null && request.auth.uid == userId;
+      
+      // ❌ IMPORTANTE: Los usuarios NO pueden ESCRIBIR directamente
+      // Solo las Cloud Functions (con permisos admin) pueden actualizar
+      // points, contributions, y stats
+      allow write: if false;
+      
+      // Nota: Si necesitas que los usuarios actualicen su perfil (nombre, foto, etc.)
+      // puedes permitir actualizaciones limitadas:
+      // allow update: if request.auth != null 
+      //               && request.auth.uid == userId
+      //               && !request.resource.data.diff(resource.data).affectedKeys()
+      //                  .hasAny(['points', 'contributions', 'stats']);
+    }
+    
+    // ============================================
+    // COLECCIÓN: bathrooms
+    // ============================================
+    match /bathrooms/{bathroomId} {
+      // Cualquiera puede LEER baños (para mostrar en el mapa)
+      allow read: if true;
+      
+      // Solo usuarios autenticados pueden CREAR baños
+      allow create: if request.auth != null 
+                    && request.resource.data.createdBy == request.auth.uid
+                    && request.resource.data.keys().hasAll(['title', 'description', 'country', 'coordinates'])
+                    && request.resource.data.coordinates.keys().hasAll(['latitude', 'longitude']);
+      
+      // ACTUALIZAR baño: Solo el creador O si solo se actualizan validaciones
+      allow update: if request.auth != null && (
+        // Opción 1: El usuario es el creador (puede editar todo excepto validations)
+        (resource.data.createdBy == request.auth.uid 
+         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['validations', 'validationCount', 'status']))
+        ||
+        // Opción 2: Cualquier usuario autenticado puede agregar validación
+        (onlyUpdatingValidations() && addingOwnValidation())
+      );
+      
+      // Solo el creador puede ELIMINAR
+      allow delete: if request.auth != null 
+                    && resource.data.createdBy == request.auth.uid;
+      
+      // Función auxiliar: Verifica que solo se actualizan campos de validación
+      function onlyUpdatingValidations() {
+        return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['validations', 'validationCount', 'status', 'updatedAt']);
+      }
+      
+      // Función auxiliar: Verifica que el usuario solo agrega su propia validación
+      function addingOwnValidation() {
+        let newValidations = request.resource.data.validations;
+        let oldValidations = resource.data.get('validations', {});
+        
+        // Solo puede agregar su propia validación (no puede agregar validaciones de otros)
+        return newValidations[request.auth.uid] == true
+               && newValidations.keys().toSet().difference(oldValidations.keys().toSet()).size() == 1;
+      }
+    }
+    
+    // ============================================
+    // COLECCIÓN: ratings
+    // ============================================
+    match /ratings/{ratingId} {
+      // Los usuarios autenticados pueden LEER ratings
+      allow read: if request.auth != null;
+      
+      // Los usuarios pueden CREAR sus propios ratings
+      allow create: if request.auth != null 
+                    && request.resource.data.userUID == request.auth.uid
+                    && request.resource.data.rating >= 1 
+                    && request.resource.data.rating <= 5
+                    && request.resource.data.keys().hasAll(['bathroomID', 'userUID', 'rating', 'createdAt']);
+      
+      // ❌ NO se pueden MODIFICAR o ELIMINAR ratings una vez creados
+      // Esto previene que usuarios modifiquen sus calificaciones para ganar más puntos
+      allow update: if false;
+      allow delete: if false;
+    }
+    
+    // ============================================
+    // COLECCIÓN: reviews (opcional, si la usas)
+    // ============================================
+    match /reviews/{reviewId} {
+      allow read: if request.auth != null;
+      
+      allow create: if request.auth != null 
+                    && request.resource.data.userId == request.auth.uid;
+      
+      // Solo el autor puede actualizar su review
+      allow update: if request.auth != null 
+                    && resource.data.userId == request.auth.uid;
+      
+      // Solo el autor puede eliminar su review
+      allow delete: if request.auth != null 
+                    && resource.data.userId == request.auth.uid;
+    }
+  }
+}
+
