@@ -91,7 +91,7 @@
           
           <div class="divide-y divide-gray-200">
             <div 
-              v-for="contribution in recentContributions" 
+              v-for="contribution in paginatedContributions" 
               :key="contribution.id"
               class="px-6 py-4 flex items-center justify-between"
             >
@@ -116,6 +116,35 @@
                 </span>
               </div>
             </div>
+            
+            <!-- Empty state -->
+            <div v-if="recentContributions.length === 0" class="px-6 py-8 text-center text-gray-500">
+              No hay contribuciones recientes
+            </div>
+          </div>
+          
+          <!-- Pagination controls -->
+          <div v-if="totalPages > 1" class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+            <div class="text-sm text-gray-600">
+              Página {{ currentPage }} de {{ totalPages }} ({{ recentContributions.length }} contribuciones)
+            </div>
+            
+            <div class="flex space-x-2">
+              <button 
+                @click="previousPage"
+                :disabled="currentPage === 1"
+                class="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Anterior
+              </button>
+              <button 
+                @click="nextPage"
+                :disabled="currentPage === totalPages"
+                class="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Siguiente
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -139,6 +168,10 @@ const totalBathrooms = ref(0)
 const totalContributors = ref(0)
 const totalCountries = ref(0)
 const recentContributions = ref([])
+
+// Pagination state
+const currentPage = ref(1)
+const itemsPerPage = 10
 
 // Check authentication
 onMounted(() => {
@@ -177,7 +210,8 @@ const loadRankingData = async () => {
     }
     
     try {
-      actions = await getRecentActions(10)
+      // Get more actions to support pagination (get enough for multiple pages)
+      actions = await getRecentActions(100)
     } catch (error) {
       console.warn('Could not load recent actions:', error.message)
       // Use mock data for now
@@ -230,6 +264,30 @@ const loadRankingData = async () => {
   } catch (error) {
     console.error('Error loading ranking data:', error)
     isLoading.value = false
+  }
+}
+
+// Computed properties for pagination
+const totalPages = computed(() => {
+  return Math.ceil(recentContributions.value.length / itemsPerPage)
+})
+
+const paginatedContributions = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return recentContributions.value.slice(start, end)
+})
+
+// Pagination functions
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+  }
+}
+
+const previousPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--
   }
 }
 
