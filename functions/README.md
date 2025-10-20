@@ -116,3 +116,4 @@ firebase functions:log
 
 4. Asegúrate de que Firebase Admin tenga los permisos necesarios en las reglas de Firestore
 
+
