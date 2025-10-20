@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "vercel:deploy": "vercel --prod",
+    "vercel:preview": "vercel",
+    "check:env": "node -e \"console.log('Environment variables check:'); ['VITE_FIREBASE_API_KEY','VITE_FIREBASE_AUTH_DOMAIN','VITE_FIREBASE_PROJECT_ID','VITE_FIREBASE_STORAGE_BUCKET','VITE_FIREBASE_MESSAGING_SENDER_ID','VITE_FIREBASE_APP_ID','VITE_MAPBOX_TOKEN'].forEach(v => console.log(v + ':', process.env[v] ? '✓ Set' : '✗ Missing'))\""
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.1.0",
