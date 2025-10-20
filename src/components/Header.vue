@@ -70,8 +70,22 @@
             <!-- Profile dropdown menu -->
             <div 
               v-if="showProfileMenu"
-              class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+              class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
             >
+              <!-- User points section -->
+              <div class="px-4 py-3 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm font-medium text-gray-700">Puntos acumulados</span>
+                  <div class="flex items-center space-x-1">
+                    <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    <span class="text-lg font-bold text-primary-600">{{ userPoints }}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Logout button -->
               <div class="py-2">
                 <button 
                   @click="handleLogout"
@@ -123,10 +137,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { geocodeCity } from '../services/mapbox.js'
-import { isLoggedIn } from '../services/userService.js'
+import { isLoggedIn, currentUser, syncUserData } from '../services/userService.js'
 import { signOutUser } from '../services/firebase.js'
 
 // Emits
@@ -139,6 +153,9 @@ const showProfileMenu = ref(false)
 
 // Router instance
 const router = useRouter()
+
+// User points computed
+const userPoints = computed(() => currentUser.value?.points || 0)
 
 // Search functionality
 const searchCity = async () => {
@@ -189,8 +206,13 @@ const toggleAuthModal = () => {
 }
 
 // Profile menu toggle
-const toggleProfileMenu = () => {
+const toggleProfileMenu = async () => {
   showProfileMenu.value = !showProfileMenu.value
+  
+  // Sync user data when opening the menu to get the latest points
+  if (showProfileMenu.value) {
+    await syncUserData()
+  }
 }
 
 // Logout function
