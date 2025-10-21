@@ -4,7 +4,7 @@
     <Header @open-auth="openAuthModal" />
     
     <!-- Main content area -->
-    <main class="pt-16">
+    <main>
       <router-view />
     </main>
     

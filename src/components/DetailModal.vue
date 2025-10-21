@@ -9,7 +9,7 @@
       @click.stop
     >
       <!-- Header -->
-      <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+      <div class="px-4 sm:px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <h2 class="text-lg font-semibold text-gray-900">
           {{ isRatingModal ? 'Calificar Baño' : 'Detalles del Baño' }}
         </h2>
@@ -24,7 +24,7 @@
       </div>
       
       <!-- Content -->
-      <div class="px-6 py-4">
+      <div class="px-4 sm:px-6 py-4">
         <!-- Loading state -->
         <div v-if="isLoading" class="text-center py-8">
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4"></div>
@@ -84,17 +84,17 @@
           </div>
           
           <!-- Action buttons -->
-          <div class="flex space-x-3 pt-4">
+          <div class="flex flex-col sm:flex-row gap-3 pt-4">
             <button 
               @click="cancelRating"
-              class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm sm:text-base"
             >
               Cancelar
             </button>
             <button 
               @click="submitRating"
               :disabled="isSubmittingRating || rating === 0"
-              class="flex-1 btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              class="flex-1 btn-primary disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base py-2.5"
             >
               <span v-if="isSubmittingRating">Enviando...</span>
               <span v-else>Enviar Calificación</span>
@@ -115,7 +115,7 @@
           
           <!-- Title and rating -->
           <div>
-            <h3 class="text-xl font-bold text-gray-900 mb-2">{{ bathroom.title }}</h3>
+            <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-2 break-words">{{ bathroom.title }}</h3>
             <div class="flex items-center space-x-2">
               <div class="flex items-center">
                 <svg 
@@ -135,33 +135,33 @@
           
           <!-- Description -->
           <div>
-            <h4 class="font-medium text-gray-900 mb-2">Descripción</h4>
-            <p class="text-gray-600">{{ bathroom.description }}</p>
+            <h4 class="font-medium text-gray-900 mb-2 text-sm sm:text-base">Descripción</h4>
+            <p class="text-gray-600 text-sm sm:text-base break-words">{{ bathroom.description }}</p>
           </div>
           
           <!-- Location info -->
           <div>
-            <h4 class="font-medium text-gray-900 mb-2">Ubicación</h4>
+            <h4 class="font-medium text-gray-900 mb-2 text-sm sm:text-base">Ubicación</h4>
             <div class="space-y-2">
-              <div class="flex items-center space-x-2 text-gray-600">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="flex items-start space-x-2 text-gray-600 text-sm sm:text-base">
+                <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <span>{{ bathroom.address }}</span>
+                <span class="break-words flex-1">{{ bathroom.address }}</span>
               </div>
-              <div class="flex items-center space-x-2 text-gray-600">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="flex items-start space-x-2 text-gray-600 text-sm sm:text-base">
+                <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>{{ bathroom.country }}</span>
+                <span class="break-words flex-1">{{ bathroom.country }}</span>
               </div>
             </div>
           </div>
           
           <!-- Amenities -->
           <div v-if="bathroom.amenities && bathroom.amenities.length > 0">
-            <h4 class="font-medium text-gray-900 mb-2">Comodidades</h4>
+            <h4 class="font-medium text-gray-900 mb-2 text-sm sm:text-base">Comodidades</h4>
             <div class="flex flex-wrap gap-2">
               <span 
                 v-for="amenity in bathroom.amenities" 
@@ -174,19 +174,20 @@
           </div>
           
           <!-- Action buttons -->
-          <div class="flex space-x-3 pt-4 border-t border-gray-200">
+          <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
             <button 
               v-if="!hasUserRated"
               @click="rateBathroom"
-              class="flex-1 btn-primary"
+              class="flex-1 btn-primary text-sm sm:text-base py-2.5"
             >
+              <i class="fa-solid fa-star mr-1"></i>
               Calificar
             </button>
             <div 
               v-else
-              class="flex-1 px-4 py-2 bg-gray-100 rounded-lg text-gray-600 text-center flex items-center justify-center"
+              class="flex-1 px-3 py-2.5 bg-gray-100 rounded-lg text-gray-600 text-center flex items-center justify-center text-sm sm:text-base"
             >
-              <i class="fa-solid fa-check mr-2"></i>
+              <i class="fa-solid fa-check mr-1.5 text-xs sm:text-sm"></i>
               Ya calificado ({{ userRating?.rating }}/5)
             </div>
             
@@ -195,26 +196,27 @@
               v-if="canValidate"
               @click="validateBathroomAction"
               :disabled="isValidationLoading"
-              class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              class="flex-1 px-3 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
             >
               <span v-if="isValidationLoading">Validando...</span>
               <span v-else>
-                <i class="fa-solid fa-check-circle mr-2"></i>
+                <i class="fa-solid fa-check-circle mr-1.5 text-xs sm:text-sm"></i>
                 Validar
               </span>
             </button>
             <div 
               v-else-if="hasUserValidatedBathroom"
-              class="flex-1 px-4 py-2 bg-green-100 rounded-lg text-green-700 text-center flex items-center justify-center"
+              class="flex-1 px-3 py-2.5 bg-green-100 rounded-lg text-green-700 text-center flex items-center justify-center text-sm sm:text-base"
             >
-              <i class="fa-solid fa-check-circle mr-2"></i>
+              <i class="fa-solid fa-check-circle mr-1.5 text-xs sm:text-sm"></i>
               Validado
             </div>
             
             <button 
               @click="shareLocation"
-              class="flex-1 btn-secondary"
+              class="flex-1 btn-secondary text-sm sm:text-base py-2.5"
             >
+              <i class="fa-solid fa-share-nodes mr-1"></i>
               Compartir
             </button>
           </div>

@@ -1,5 +1,5 @@
 <template>
-  <div class="relative w-full h-[calc(100vh-4rem)]">
+  <div class="fixed inset-0 top-16 w-full">
     <!-- Mapbox GL JS Map Container -->
     <div 
       id="map" 
@@ -190,6 +190,14 @@ const setupBathroomsListener = () => {
   })
 }
 
+// Handle window resize to fix mobile viewport issues
+const handleResize = () => {
+  const mapInstance = getMapInstance()
+  if (mapInstance) {
+    mapInstance.resize()
+  }
+}
+
 // Map initialization
 onMounted(async () => {
   try {
@@ -211,6 +219,9 @@ onMounted(async () => {
       const coords = event.detail
       centerMapOnCoordinates(coords)
     })
+    
+    // Listen for window resize (important for mobile viewport changes)
+    window.addEventListener('resize', handleResize)
     
     // Setup real-time listener for bathrooms
     setupBathroomsListener()
@@ -235,6 +246,11 @@ onMounted(async () => {
       loadBathroomsInVisibleBounds()
     })
     
+    // Force resize after a short delay to ensure proper mobile rendering
+    setTimeout(() => {
+      handleResize()
+    }, 100)
+    
     console.log('Map setup complete')
     isMapLoading.value = false
   } catch (error) {
@@ -249,6 +265,7 @@ onUnmounted(() => {
   // Clean up event listeners
   window.removeEventListener('storage', checkForSearchCoordinates)
   window.removeEventListener('searchCoordinatesUpdated', centerMapOnCoordinates)
+  window.removeEventListener('resize', handleResize)
   
   // Clean up Firestore listener
   if (unsubscribeBathrooms.value) {

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 py-6">
+  <div class="min-h-screen bg-gray-50 pt-20 pb-6">
     <div class="max-w-4xl mx-auto px-4">
       <!-- Header -->
       <div class="text-center mb-8">
@@ -17,49 +17,51 @@
       <div v-else class="space-y-4">
         <!-- User ranking list -->
         <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div class="px-6 py-4 border-b border-gray-200">
-            <h2 class="text-lg font-semibold text-gray-900">Top Contribuidores</h2>
+          <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+            <h2 class="text-base sm:text-lg font-semibold text-gray-900">Top Contribuidores</h2>
           </div>
           
           <div class="divide-y divide-gray-200">
             <div 
               v-for="(user, index) in topUsers" 
               :key="user.id"
-              class="px-6 py-4 flex items-center justify-between hover:bg-gray-50"
+              class="px-4 sm:px-6 py-4 hover:bg-gray-50"
             >
-              <div class="flex items-center space-x-4">
-                <!-- Rank badge -->
-                <div 
-                  class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                  :class="getRankBadgeClass(index)"
-                >
-                  {{ index + 1 }}
-                </div>
-                
-                <!-- User avatar -->
-                <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-                  <img 
-                    v-if="user.avatar" 
-                    :src="user.avatar" 
-                    :alt="user.name"
-                    class="w-full h-full object-cover"
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+                  <!-- Rank badge -->
+                  <div 
+                    class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold flex-shrink-0"
+                    :class="getRankBadgeClass(index)"
                   >
-                  <svg v-else class="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                  </svg>
+                    {{ index + 1 }}
+                  </div>
+                  
+                  <!-- User avatar -->
+                  <div class="w-8 h-8 sm:w-10 sm:h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <img 
+                      v-if="user.avatar" 
+                      :src="user.avatar" 
+                      :alt="user.name"
+                      class="w-full h-full object-cover"
+                    >
+                    <svg v-else class="w-4 h-4 sm:w-6 sm:h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+                  
+                  <!-- User info -->
+                  <div class="flex-1 min-w-0">
+                    <h3 class="font-medium text-gray-900 text-sm sm:text-base truncate">{{ user.name }}</h3>
+                    <p class="text-xs sm:text-sm text-gray-500">{{ user.contributions }} contribuciones</p>
+                  </div>
                 </div>
                 
-                <!-- User info -->
-                <div>
-                  <h3 class="font-medium text-gray-900">{{ user.name }}</h3>
-                  <p class="text-sm text-gray-500">{{ user.contributions }} contribuciones</p>
+                <!-- Points -->
+                <div class="text-right flex-shrink-0 ml-2">
+                  <p class="text-base sm:text-lg font-bold text-primary-600">{{ user.points }}</p>
+                  <p class="text-xs text-gray-500">puntos</p>
                 </div>
-              </div>
-              
-              <!-- Points -->
-              <div class="text-right">
-                <p class="text-lg font-bold text-primary-600">{{ user.points }}</p>
-                <p class="text-xs text-gray-500">puntos</p>
               </div>
             </div>
           </div>
@@ -85,46 +87,53 @@
         
         <!-- Recent contributions -->
         <div class="bg-white rounded-lg shadow-sm overflow-hidden mt-8">
-          <div class="px-6 py-4 border-b border-gray-200">
-            <h2 class="text-lg font-semibold text-gray-900">Contribuciones Recientes</h2>
+          <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+            <h2 class="text-base sm:text-lg font-semibold text-gray-900">Contribuciones Recientes</h2>
           </div>
           
           <div class="divide-y divide-gray-200">
             <div 
               v-for="contribution in paginatedContributions" 
               :key="contribution.id"
-              class="px-6 py-4 flex items-center justify-between"
+              class="px-4 sm:px-6 py-4"
             >
-              <div class="flex items-center space-x-4">
-                <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                  <svg class="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+              <div class="flex items-start space-x-3 sm:space-x-4">
+                <!-- Avatar -->
+                <div class="w-8 h-8 sm:w-10 sm:h-10 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                  <svg class="w-4 h-4 sm:w-6 sm:h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
                     <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
                   </svg>
                 </div>
                 
-                <div>
-                  <h3 class="font-medium text-gray-900">{{ contribution.title }}</h3>
-                  <p class="text-sm text-gray-500">
-                    por {{ contribution.author }} • {{ formatDate(contribution.createdAt) }}
-                  </p>
+                <!-- Content -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="flex-1 min-w-0">
+                      <h3 class="font-medium text-gray-900 text-sm sm:text-base break-words">{{ contribution.title }}</h3>
+                      <p class="text-xs sm:text-sm text-gray-500 mt-1">
+                        por {{ contribution.author }} • {{ formatDate(contribution.createdAt) }}
+                      </p>
+                    </div>
+                    
+                    <!-- Points badge -->
+                    <div class="flex-shrink-0">
+                      <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        +{{ contribution.points }} pts
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-              <div class="text-right">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  +{{ contribution.points }} pts
-                </span>
               </div>
             </div>
             
             <!-- Empty state -->
-            <div v-if="recentContributions.length === 0" class="px-6 py-8 text-center text-gray-500">
+            <div v-if="recentContributions.length === 0" class="px-4 sm:px-6 py-8 text-center text-gray-500">
               No hay contribuciones recientes
             </div>
           </div>
           
           <!-- Pagination controls -->
-          <div v-if="totalPages > 1" class="px-6 py-4 border-t border-gray-200">
+          <div v-if="totalPages > 1" class="px-4 sm:px-6 py-4 border-t border-gray-200">
             <div class="text-sm text-gray-600 mb-3 text-center">
               Página {{ currentPage }} de {{ totalPages }} ({{ recentContributions.length }} contribuciones)
             </div>
