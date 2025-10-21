@@ -28,15 +28,41 @@
   }
   
   .modal-overlay {
-    @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4;
-    /* Prevent body scroll when modal is open */
+    @apply fixed inset-0 bg-black bg-opacity-50 z-50;
+    /* Allow scrolling */
     overflow-y: auto;
+    /* Center modal properly */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
   }
   
   .modal-content {
-    @apply bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto;
-    /* Ensure modal doesn't exceed viewport */
+    @apply bg-white rounded-lg shadow-xl max-w-md w-full;
+    /* Auto height based on content */
     max-height: calc(100vh - 2rem);
+    /* Allow scrolling when content exceeds max-height */
+    overflow-y: auto;
+    /* Center in viewport */
+    margin: auto;
+  }
+  
+  /* Mobile specific adjustments */
+  @media (max-width: 640px) {
+    .modal-overlay {
+      padding: 1rem;
+      /* Better centering on mobile */
+      align-items: center;
+      padding-top: 1rem;
+    }
+    
+    .modal-content {
+      max-height: calc(100vh - 2rem);
+      /* Auto height, not full screen */
+      height: auto;
+      min-height: fit-content;
+    }
   }
   
   /* Prevent horizontal scrolling in modal */
