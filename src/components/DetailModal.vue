@@ -15,7 +15,8 @@
         </h2>
         <button 
           @click="isRatingModal ? cancelRating() : closeModal()"
-          class="text-gray-400 hover:text-gray-600 transition-colors"
+          class="text-gray-500 hover:text-gray-700 transition-colors p-1 rounded-full hover:bg-gray-100"
+          aria-label="Cerrar modal"
         >
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -98,6 +99,17 @@
             >
               <span v-if="isSubmittingRating">Enviando...</span>
               <span v-else>Enviar Calificación</span>
+            </button>
+          </div>
+          
+          <!-- Close button for mobile -->
+          <div class="mt-4 pt-4 border-t border-gray-200 md:hidden">
+            <button 
+              @click="cancelRating"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+            >
+              <i class="fa-solid fa-times mr-1.5"></i>
+              Cerrar
             </button>
           </div>
         </div>
@@ -220,6 +232,17 @@
               Compartir
             </button>
           </div>
+          
+          <!-- Close button for mobile -->
+          <div class="mt-4 pt-4 border-t border-gray-200 md:hidden">
+            <button 
+              @click="closeModal"
+              class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+            >
+              <i class="fa-solid fa-times mr-1.5"></i>
+              Cerrar
+            </button>
+          </div>
         </div>
         
         <!-- Error state -->
@@ -278,11 +301,26 @@ watch(() => props.bathroom, async (newBathroom) => {
   }
 }, { immediate: true })
 
+// Handle escape key to close modal
+const handleKeydown = (event) => {
+  if (event.key === 'Escape' && props.isVisible) {
+    closeModal()
+  }
+}
+
 // Watch for modal visibility changes
 watch(() => props.isVisible, async (isVisible) => {
   if (isVisible && props.bathroom) {
+    // Prevent body scroll when modal opens
+    document.body.classList.add('modal-open')
+    // Add escape key listener
+    document.addEventListener('keydown', handleKeydown)
     await loadBathroomDetails(props.bathroom)
   } else if (!isVisible) {
+    // Allow body scroll when modal closes
+    document.body.classList.remove('modal-open')
+    // Remove escape key listener
+    document.removeEventListener('keydown', handleKeydown)
     // Reset state when modal closes
     bathroom.value = null
     hasUserRated.value = false
